@@ -7,7 +7,7 @@ To run the application, run the `main` method from the `Application` class. Once
 file contains information to connect to a database. Un-comment the database in order to connect to it. The database
 includes all required snacks, plus 4 snacks, pre-loaded.
 
-###Project Structure
+### Project Structure
 * Controllers
 * Exceptions
 * Repository
