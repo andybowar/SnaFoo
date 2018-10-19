@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Votes Error</title>
+    <link rel="stylesheet"
+          href="/static/bootstrap/css/bootstrap.min.css" th:href="@{/bootstrap/css/bootstrap.min.css}" />
+</head>
+<body th:class="container">
+<div th:class="col-lg-12">
+    <h1>
+        Snack Suggestion Error
+    </h1>
+    <hr />
+</div>
+<p style="color: red;" th:text="'ERROR: you must enter a snack through the Snack Suggestions page.'">Error</p>
+<form th:action="@{/}"
+      action="/">
+    <input type="submit" th:class="btn + ' ' + btn-primary" value="Back to snacks lists" />
+</form>
+</body>
+</html>

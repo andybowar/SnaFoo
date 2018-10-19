@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>Snacks</title>
+    <link rel="stylesheet"
+          href="/static/bootstrap/css/bootstrap.min.css" th:href="@{/bootstrap/css/bootstrap.min.css}" />
+</head>
+<body th:class="container">
+    <div th:class="col-lg-12">
+        <h1 th:class="text-lg-center">
+            Snacks
+        </h1>
+        <hr />
+    </div>
+    <div th:class="row">
+        <div th:class="col-lg-6">
+            <h3>Required Snacks</h3>
+            <table th:class="table + ' ' + table-hover">
+                <thead>
+                    <tr>
+                        <th scope="col">Name</th>
+                        <th scope="col">Purchase Location</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="snack : ${requiredSnacks}">
+                        <td>
+                            <span th:text="${snack.getName()}">Name</span>
+                        </td>
+                        <td>
+                            <span th:text="${snack.getPurchaseLocations()}">Location</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div th:class="col-lg-6">
+            <h3>Suggested Snacks</h3>
+            <form action="/add-vote"
+                  th:class="col-lg-6"
+                  th:action="@{/add-vote}"
+                  th:method="post"
+                  th:modelAttribute="optionalSnacks"
+                  enctype="multipart/form-data">
+                <table th:class="table + ' ' + table-hover">
+                <thead>
+                    <tr>
+                       <th scope="col">Name</th>
+                       <th scope="col">Location</th>
+                       <th scope="col">Number of votes</th>
+                       <td> </td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${suggestedSnacks.empty}">
+                        <td colspan="3">No suggested snacks found. Add one by clicking on the button below!</td>
+                    </tr>
+                    <tr th:each="snack : ${suggestedSnacks}">
+                        <td>
+                            <span th:text="${snack.getName()}">Name</span>
+                        </td>
+                        <td>
+                            <span th:text="${snack.getPurchaseLocations()}">Location</span>
+                        </td>
+                        <td>
+                            <span th:text="${snack.getNumVotes()}">Number of votes</span>
+                        </td>
+                        <td>
+                            <input th:type="checkbox" th:name="ids" th:value="${snack.id}">
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+                <div th:switch="${disableSubmitVotesButton}">
+                    <input th:case="true"
+                           th:if="${!suggestedSnacks.empty}"
+                           type="submit"
+                           th:class="btn + ' ' + btn-primary" value="Vote"
+                           disabled/>
+                    <input th:case="*"
+                           th:if="${!suggestedSnacks.empty}"
+                           type="submit"
+                           th:class="btn + ' ' + btn-primary" value="Vote"/>
+                </div>
+                <p th:if="${!suggestedSnacks.empty}" style="color: red;" th:text="'You have ' + ${3 - intNumVotes} + ' votes remaining.'">Text</p>
+            </form>
+            <br>
+
+        </div>
+    </div>
+    <div th:class="row">
+        <div th:class="col-lg-2">
+            <form th:action="@{/snack-suggestions}"
+                  action="/snack-suggestions">
+                <input type="submit" th:class="btn + ' ' + btn-primary" value="Snack Suggestions" />
+            </form>
+        </div>
+        <div th:class="col-lg-6">
+            <form th:action="@{/shopping-list}"
+                  action="/shopping-list">
+                <input type="submit" th:class="btn + ' ' + btn-primary" value="Shopping List" />
+            </form>
+        </div>
+    </div>
+</body>
+</html>
