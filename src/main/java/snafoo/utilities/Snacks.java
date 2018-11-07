@@ -1,4 +1,4 @@
-package snafoo;
+package snafoo.utilities;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 

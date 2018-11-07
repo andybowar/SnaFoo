@@ -3,71 +3,33 @@ package snafoo.controllers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.WebUtils;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
+import javax.servlet.http.HttpServletResponse;
 import java.util.List;
 
-import snafoo.Snacks;
+import snafoo.utilities.Snacks;
+import snafoo.exceptions.TooManyVotesException;
+import snafoo.services.SnacksService;
 
 @Controller
 public class SnacksPageController {
 
     @Autowired
-    private SnacksController snacksController;
-
-    @Autowired
-    private SnacksJsonController snacksJsonController;
-
-    private List<Snacks> requiredSnacks() {
-        snacksController.addApi();
-        List<Snacks> allSnacks = snacksJsonController.allSuggestedSnacks();
-        List<Snacks> requiredSnacks = new ArrayList<>();
-
-        for (Snacks snack : allSnacks) {
-            if (!snack.isOptional()) {
-                requiredSnacks.add(snack);
-            }
-        }
-
-        return requiredSnacks;
-    }
-
-    private List<Snacks> optionalSnacks() {
-        List<Snacks> allSnacks = snacksJsonController.allSuggestedSnacks();
-        List<Snacks> optionalSnacks = new ArrayList<>();
-
-        for (Snacks snack : allSnacks) {
-            if(snack.isOptional()) {
-                optionalSnacks.add(snack);
-            }
-        }
-
-        return optionalSnacks;
-    }
-
-    private List<Snacks> suggestedSnacks() {
-        List<Snacks> allSnacks = snacksJsonController.allSuggestedSnacks();
-        List<Snacks> suggestedSnacks = new ArrayList<>();
-
-        for (Snacks snack : allSnacks) {
-            if (snack.isSuggested()) {
-                suggestedSnacks.add(snack);
-            }
-        }
-
-        return suggestedSnacks;
-    }
+    private SnacksService snacksService;
 
     @GetMapping("/")
     public String snacksList(Model model, HttpServletRequest request) {
+        snacksService.addApi();
+
         int intNumVotes = 0;
 
-        model.addAttribute("requiredSnacks", requiredSnacks());
-        model.addAttribute("suggestedSnacks", suggestedSnacks());
+        model.addAttribute("requiredSnacks", snacksService.requiredSnacks());
+        model.addAttribute("suggestedSnacks", snacksService.suggestedSnacks());
 
         /* Get the numVotesAdded cookie, which was created in the addVote() method
          We call the cookie and manipulate it here because this method returns the
@@ -83,21 +45,31 @@ public class SnacksPageController {
                 model.addAttribute("disableSubmitVotesButton", true);
             }
         }
+
         model.addAttribute("intNumVotes", intNumVotes);
 
         return "snacks";
+    }
+
+    @RequestMapping("add-snack-success")
+    public String addSnack (@ModelAttribute("snacks") @Validated Snacks snacks) {
+
+        snacksService.saveSnack(snacks);
+
+        return "redirect:/snack-suggestions";
     }
 
     @GetMapping("/snack-suggestions")
     public String snackSuggestions(Model model, HttpServletRequest request) {
         int intNumAdded = 0;
 
-        snacksController.addApi();
-        model.addAttribute("optionalSnacks", optionalSnacks());
+        snacksService.addApi();
+        model.addAttribute("optionalSnacks", snacksService.optionalSnacks());
         model.addAttribute("newSnack", new Snacks());
 
         Cookie numAdded = WebUtils.getCookie(request, "numAdded");
 
+        // This block controls whether the `Submit` button is disabled or not
         if(!(numAdded == null)) {
             intNumAdded = Integer.valueOf(numAdded.getValue());
             if(intNumAdded >= 1) {
@@ -111,10 +83,39 @@ public class SnacksPageController {
 
     @GetMapping("/shopping-list")
     public String shoppingList(Model model) {
-        List<Snacks> shoppingList = snacksController.shoppingList();
+        List<Snacks> shoppingList = snacksService.shoppingList();
 
         model.addAttribute("shoppingList", shoppingList);
 
         return "shopping-list";
+    }
+
+    @RequestMapping("add-suggestion")
+    public String addSuggestion(@CookieValue(value = "numAdded", defaultValue = "0") Long numAdded, HttpServletResponse response, @RequestParam int id) {
+
+        snacksService.saveSuggestion(id);
+
+        numAdded++;
+
+        Cookie cookie = new Cookie("numAdded", numAdded.toString());
+        response.addCookie(cookie);
+
+        return "redirect:/snack-suggestions";
+    }
+
+    @RequestMapping("add-vote")
+    public String addVote(@CookieValue(value = "numVotesAdded", defaultValue = "0") Long numVotesAdded, HttpServletResponse response, @RequestParam int[] ids) throws TooManyVotesException {
+        // Prevents user from checking and voting for more than 3 options
+        if(ids.length > 3) {
+            throw new TooManyVotesException("You may only vote for 3 snacks or fewer.");
+        }
+
+        // this part does not work.
+        numVotesAdded = snacksService.saveVote(ids);
+
+        Cookie cookie = new Cookie("numVotesAdded", numVotesAdded.toString());
+        response.addCookie(cookie);
+
+        return "redirect:/";
     }
 }

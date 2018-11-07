@@ -1,23 +1,21 @@
-package snafoo.controllers;
+package snafoo.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.List;
 
-import snafoo.Snacks;
-import snafoo.exceptions.TooManyVotesException;
+import snafoo.utilities.Snacks;
+import snafoo.utilities.*;
 import snafoo.repositories.SnacksRepository;
 
-@Controller
-public class SnacksController {
+@Service
+public class SnacksService {
+
+    private final String url = "https://api-snacks-staging.nerderylabs.com/v1/snacks/?ApiKey=cda2e459-799b-4583-b697-f041ccb5000c";
 
     @Autowired
     private SnacksRepository snacksRepository;
@@ -25,12 +23,15 @@ public class SnacksController {
     @Autowired
     private RestTemplate restTemplate;
 
-    @RequestMapping("add-api")
-    public String addApi() throws RestClientException {
+    private List<Snacks> allSuggestedSnacks() {
+        return snacksRepository.findAll();
+    }
+
+    public void addApi() throws RestClientException {
         Snacks[] snacks = new Snacks[0];
 
         try {
-            snacks = restTemplate.getForObject("https://api-snacks-staging.nerderylabs.com/v1/snacks/?ApiKey=cda2e459-799b-4583-b697-f041ccb5000c", Snacks[].class);
+            snacks = restTemplate.getForObject(url, Snacks[].class);
         } catch (RestClientException e) {
             System.out.println("Could not get required snacks from remote API: " + e);
         }
@@ -45,60 +46,24 @@ public class SnacksController {
                 }
             }
         }
-
-        return "redirect:/";
     }
 
-    @RequestMapping("add-snack-success")
-    public String addSnack (@ModelAttribute("snacks") @Validated Snacks snacks) {
-
-        snacks.setOptional(true);
-        snacksRepository.save(snacks);
-
-        return "redirect:/snack-suggestions";
-    }
-
-    @RequestMapping("add-suggestion")
-    public String addSuggestion(@CookieValue(value = "numAdded", defaultValue = "0") Long numAdded, HttpServletResponse response, @RequestParam int id) {
-
-        Snacks snack = snacksRepository.findSnackById(id).get(0);
-        snack.setSuggested(true);
-        snacksRepository.save(snack);
-
-        numAdded++;
-
-        Cookie cookie = new Cookie("numAdded", numAdded.toString());
-        response.addCookie(cookie);
-
-        return "redirect:/snack-suggestions";
-    }
-
-    @RequestMapping("add-vote")
-    public String addVote(@CookieValue(value = "numVotesAdded", defaultValue = "0") Long numVotesAdded, HttpServletResponse response, @RequestParam int[] ids) throws TooManyVotesException {
-
-        // Prevents user from checking and voting for more than 3 options
-        if(ids.length > 3) {
-            throw new TooManyVotesException("You may only vote for 3 snacks or fewer.");
-        }
-
+    public Long saveVote(int[] ids) {
+        Long numVotesAdded = 0L;
+        
         for (int id : ids) {
             Snacks snack = snacksRepository.findSnackById(id).get(0);
 
             if (snack.isOptional()) {
                 int numVotes = snacksRepository.findSnackById(id).get(0).getNumVotes();
                 snack.setNumVotes(numVotes + 1);
+                numVotesAdded++;
             }
-            numVotesAdded++;
             snacksRepository.save(snack);
         }
-
-        Cookie cookie = new Cookie("numVotesAdded", numVotesAdded.toString());
-        response.addCookie(cookie);
-
-        return "redirect:/";
+        return numVotesAdded;
     }
 
-    @RequestMapping("shopping-list")
     public List<Snacks> shoppingList() {
         List<Snacks> snacks = snacksRepository.findAll();
 
@@ -142,5 +107,59 @@ public class SnacksController {
         }
 
         return shoppingList;
+    }
+
+    public List<Snacks> requiredSnacks() {
+        addApi();
+        List<Snacks> allSnacks = allSuggestedSnacks();
+        List<Snacks> requiredSnacks = new ArrayList<>();
+
+        for (Snacks snack : allSnacks) {
+            if (!snack.isOptional()) {
+                requiredSnacks.add(snack);
+            }
+        }
+
+        return requiredSnacks;
+    }
+
+    public List<Snacks> optionalSnacks() {
+        List<Snacks> allSnacks = allSuggestedSnacks();
+        List<Snacks> optionalSnacks = new ArrayList<>();
+
+        for (Snacks snack : allSnacks) {
+            if(snack.isOptional()) {
+                optionalSnacks.add(snack);
+            }
+        }
+
+        return optionalSnacks;
+    }
+
+    public List<Snacks> suggestedSnacks() {
+        List<Snacks> allSnacks = allSuggestedSnacks();
+        List<Snacks> suggestedSnacks = new ArrayList<>();
+
+        for (Snacks snack : allSnacks) {
+            if (snack.isSuggested()) {
+                suggestedSnacks.add(snack);
+            }
+        }
+
+        return suggestedSnacks;
+    }
+
+    // Make this a POST call
+    public void saveSnack(Snacks snacks) {
+        snacks.setOptional(true);
+        snacksRepository.save(snacks);
+    }
+
+    public void saveSuggestion(int id) {
+        Snacks snack;
+
+        snack = snacksRepository.findSnackById(id).get(0);
+        snack.setSuggested(true);
+        snacksRepository.save(snack);
     }
 }

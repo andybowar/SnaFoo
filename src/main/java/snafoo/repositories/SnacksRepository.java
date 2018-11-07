@@ -4,7 +4,7 @@ import org.springframework.data.repository.CrudRepository;
 
 import java.util.List;
 
-import snafoo.Snacks;
+import snafoo.utilities.Snacks;
 
 public interface SnacksRepository extends CrudRepository<Snacks, Long> {
     List<Snacks> findAll();
