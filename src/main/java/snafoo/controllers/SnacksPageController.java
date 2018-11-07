@@ -110,7 +110,6 @@ public class SnacksPageController {
             throw new TooManyVotesException("You may only vote for 3 snacks or fewer.");
         }
 
-        // this part does not work.
         numVotesAdded = snacksService.saveVote(numVotesAdded, ids);
 
         Cookie cookie = new Cookie("numVotesAdded", numVotesAdded.toString());
