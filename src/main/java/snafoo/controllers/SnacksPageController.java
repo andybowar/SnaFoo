@@ -111,7 +111,7 @@ public class SnacksPageController {
         }
 
         // this part does not work.
-        numVotesAdded = snacksService.saveVote(ids);
+        numVotesAdded = snacksService.saveVote(numVotesAdded, ids);
 
         Cookie cookie = new Cookie("numVotesAdded", numVotesAdded.toString());
         response.addCookie(cookie);

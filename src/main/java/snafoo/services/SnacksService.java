@@ -48,8 +48,7 @@ public class SnacksService {
         }
     }
 
-    public Long saveVote(int[] ids) {
-        Long numVotesAdded = 0L;
+    public Long saveVote(Long numVotesAdded, int[] ids) {
         
         for (int id : ids) {
             Snacks snack = snacksRepository.findSnackById(id).get(0);
