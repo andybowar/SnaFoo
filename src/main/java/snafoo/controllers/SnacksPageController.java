@@ -106,7 +106,7 @@ public class SnacksPageController {
     @RequestMapping("add-vote")
     public String addVote(@CookieValue(value = "numVotesAdded", defaultValue = "0") Long numVotesAdded, HttpServletResponse response, @RequestParam int[] ids) throws TooManyVotesException {
         // Prevents user from checking and voting for more than 3 options
-        if(ids.length > 3) {
+        if(ids.length + numVotesAdded > 3) {
             throw new TooManyVotesException("You may only vote for 3 snacks or fewer.");
         }
 
