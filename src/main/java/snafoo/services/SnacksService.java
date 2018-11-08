@@ -6,8 +6,10 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import snafoo.repositories.VotesRepository;
 import snafoo.utilities.Snacks;
 import snafoo.utilities.*;
 import snafoo.repositories.SnacksRepository;
@@ -19,6 +21,9 @@ public class SnacksService {
 
     @Autowired
     private SnacksRepository snacksRepository;
+
+    @Autowired
+    private VotesRepository votesRepository;
 
     @Autowired
     private RestTemplate restTemplate;
@@ -49,17 +54,39 @@ public class SnacksService {
     }
 
     public Long saveVote(Long numVotesAdded, int[] ids) {
-        
+
+        // Save the vote as a new row in the Votes table
         for (int id : ids) {
             Snacks snack = snacksRepository.findSnackById(id).get(0);
 
-            if (snack.isOptional()) {
-                int numVotes = snacksRepository.findSnackById(id).get(0).getNumVotes();
-                snack.setNumVotes(numVotes + 1);
-                numVotesAdded++;
-            }
+            int snackId = snack.getId();
+            Votes votes = new Votes();
+            votes.setSnackId(snackId);
+            votesRepository.save(votes);
+
+            numVotesAdded++;
+        }
+
+        List<Snacks> snacks = snacksRepository.findAll();
+        List<Votes> votes = votesRepository.findAll();
+
+        // Put all snack IDs from the Votes table into an array in order
+        // to count number of votes by snack ID
+        List<String> votedSnackIds = new ArrayList<>();
+        for (Votes vote : votes) {
+            String snackId = String.valueOf(vote.getSnackId());
+            votedSnackIds.add(snackId);
+        }
+
+        // Count number of votes by snack ID, set the number in the
+        // snack object and save
+        for (Snacks snack: snacks) {
+            int numVotes = Collections.frequency(votedSnackIds, String.valueOf(snack.getId()));
+            snack.setNumVotes(numVotes);
             snacksRepository.save(snack);
         }
+
+        // Return this for the cookie
         return numVotesAdded;
     }
 
