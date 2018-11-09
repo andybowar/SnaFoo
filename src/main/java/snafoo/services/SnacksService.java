@@ -2,12 +2,11 @@ package snafoo.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import snafoo.repositories.VotesRepository;
 import snafoo.utilities.Snacks;
@@ -41,16 +40,51 @@ public class SnacksService {
             System.out.println("Could not get required snacks from remote API: " + e);
         }
 
+        /*
+         * 1. Iterate through all snacks in the API
+         * 2. Find all snacks in the database
+         * 3. If there are none in the database, skip down and save the first snack
+         * 4. If there is at least one snack in the database, check each snack from
+         *    the API (by ID) to see if it already exists in the database
+         * 5. If it doesn't, add it
+         * 6. By the end of this loop, all snacks from the API should be synced to
+         *    the database without duplicates.
+         */
         if (snacks != null) {
             for (Snacks snack : snacks) {
+                int i = 0;
                 List<Snacks> snacksRepo = snacksRepository.findAll();
-                if (snacksRepo.contains(snack)) {
-                    break;
+                if (snacksRepo.size() > 0) {
+                    if (snacksRepo.get(i).getId().equals(snack.getId())) {
+                        break;
+                    } else {
+                        snacksRepository.save(snack);
+                    }
                 } else {
                     snacksRepository.save(snack);
                 }
+
             }
         }
+    }
+
+    public void postToApi() {
+        List<Snacks> snacks = snacksRepository.findAll();
+
+        for (Snacks snack : snacks) {
+            Map<String, String> map = new HashMap<>();
+            map.put("name", snack.getName());
+            map.put("location", snack.getPurchaseLocations());
+            try {
+                if (snack.isOptional()) {
+                    restTemplate.postForObject(url, map, Snacks.class);
+                }
+            } catch (HttpClientErrorException expected) {
+                // Any optional snacks already in the API will conflict,
+                // producing a 409 error.
+            }
+        }
+
     }
 
     public Long saveVote(Long numVotesAdded, int[] ids) {
@@ -136,7 +170,7 @@ public class SnacksService {
     }
 
     public List<Snacks> requiredSnacks() {
-        addApi();
+        //addApi();
         List<Snacks> allSnacks = allSuggestedSnacks();
         List<Snacks> requiredSnacks = new ArrayList<>();
 
@@ -175,9 +209,29 @@ public class SnacksService {
         return suggestedSnacks;
     }
 
-    // Make this a POST call
     public void saveSnack(Snacks snacks) {
         snacks.setOptional(true);
+
+        // Post snack to API so it gets an ID
+        Map<String, String> map = new HashMap<>();
+        map.put("name", snacks.getName());
+        map.put("location", snacks.getPurchaseLocations());
+        try {
+            if (snacks.isOptional()) {
+                restTemplate.postForObject(url, map, Snacks.class);
+            }
+        } catch (HttpClientErrorException expected) {
+
+        }
+
+        // Get snack back from API to get its ID so we can save it to database
+        Snacks[] snacksInApi = restTemplate.getForObject(url, Snacks[].class);
+        for (Snacks snackInApi : snacksInApi) {
+            if(snackInApi.getName().equals(snacks.getName())) {
+                snacks.setId(snackInApi.getId());
+            }
+        }
+
         snacksRepository.save(snacks);
     }
 

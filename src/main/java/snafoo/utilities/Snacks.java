@@ -15,8 +15,6 @@ public class Snacks {
     be added.
      */
     @Id
-    @GeneratedValue(strategy = GenerationType.TABLE, generator = "Snacks")
-    @TableGenerator(name = "Snacks", initialValue = 999)
     private Integer id;
 
     private String name;
@@ -27,6 +25,21 @@ public class Snacks {
 
     public Snacks() {
 
+    }
+
+    @Override
+    public int hashCode() {
+        return id;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) return false;
+        if (!(obj instanceof Snacks))
+            return false;
+        if (obj == this)
+            return true;
+        return this.getId() == ((Snacks) obj).getId();
     }
 
     public Integer getId() {
