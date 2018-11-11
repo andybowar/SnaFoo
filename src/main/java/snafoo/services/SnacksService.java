@@ -51,19 +51,19 @@ public class SnacksService {
          *    the database without duplicates.
          */
         if (snacks != null) {
+            int i = 0;
             for (Snacks snack : snacks) {
-                int i = 0;
                 List<Snacks> snacksRepo = snacksRepository.findAll();
                 if (snacksRepo.size() > 0) {
                     if (snacksRepo.get(i).getId().equals(snack.getId())) {
-                        break;
+                        // Do nothing - skip over the snack
                     } else {
                         snacksRepository.save(snack);
                     }
+                    i++;
                 } else {
                     snacksRepository.save(snack);
                 }
-
             }
         }
     }
