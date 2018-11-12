@@ -170,7 +170,6 @@ public class SnacksService {
     }
 
     public List<Snacks> requiredSnacks() {
-        //addApi();
         List<Snacks> allSnacks = allSuggestedSnacks();
         List<Snacks> requiredSnacks = new ArrayList<>();
 
