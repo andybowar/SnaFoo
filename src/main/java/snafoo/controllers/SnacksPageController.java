@@ -25,7 +25,6 @@ public class SnacksPageController {
     @GetMapping("/")
     public String snacksList(Model model, HttpServletRequest request) {
         snacksService.addApi();
-        snacksService.postToApi();
 
         int intNumVotes = 0;
 

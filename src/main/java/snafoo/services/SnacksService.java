@@ -68,25 +68,6 @@ public class SnacksService {
         }
     }
 
-    public void postToApi() {
-        List<Snacks> snacks = snacksRepository.findAll();
-
-        for (Snacks snack : snacks) {
-            Map<String, String> map = new HashMap<>();
-            map.put("name", snack.getName());
-            map.put("location", snack.getPurchaseLocations());
-            try {
-                if (snack.isOptional()) {
-                    restTemplate.postForObject(url, map, Snacks.class);
-                }
-            } catch (HttpClientErrorException expected) {
-                // Any optional snacks already in the API will conflict,
-                // producing a 409 error.
-            }
-        }
-
-    }
-
     public Long saveVote(Long numVotesAdded, int[] ids) {
 
         // Save the vote as a new row in the Votes table
@@ -96,7 +77,7 @@ public class SnacksService {
             int snackId = snack.getId();
             Votes votes = new Votes();
             votes.setSnackId(snackId);
-            votesRepository.save(votes);
+            votesRepository.save(votes); // Implement saveAll instead?
 
             numVotesAdded++;
         }
@@ -209,6 +190,7 @@ public class SnacksService {
     }
 
     public void saveSnack(Snacks snacks) {
+        int snackIdInApi = 0;
         snacks.setOptional(true);
 
         // Post snack to API so it gets an ID
@@ -216,20 +198,13 @@ public class SnacksService {
         map.put("name", snacks.getName());
         map.put("location", snacks.getPurchaseLocations());
         try {
-            if (snacks.isOptional()) {
-                restTemplate.postForObject(url, map, Snacks.class);
-            }
+            final Snacks snacks1 = restTemplate.postForObject(url, map, Snacks.class);
+            snackIdInApi = snacks1.getId();
         } catch (HttpClientErrorException expected) {
 
         }
 
-        // Get snack back from API to get its ID so we can save it to database
-        Snacks[] snacksInApi = restTemplate.getForObject(url, Snacks[].class);
-        for (Snacks snackInApi : snacksInApi) {
-            if(snackInApi.getName().equals(snacks.getName())) {
-                snacks.setId(snackInApi.getId());
-            }
-        }
+        snacks.setId(snackIdInApi);
 
         snacksRepository.save(snacks);
     }
